@@ -57,7 +57,6 @@ invalid_callback = "[]"
 
 
 def run_module(codefile: str, module: str, extra: str = ""):
-
     cmd = shlex.split(
         f"{sys.executable} -m {module} {codefile}{extra}",
         posix=sys.platform != "win32",
@@ -65,6 +64,18 @@ def run_module(codefile: str, module: str, extra: str = ""):
     )
 
     env = os.environ.copy()
+
+    # Ensure the subprocess can resolve locally generated packages (e.g. the
+    # package created by the tests) by adding the current working directory
+    # and its parent to PYTHONPATH used by the subprocess.
+    cwd = os.getcwd()
+    parent = os.path.abspath(os.path.join(cwd, os.pardir))
+    existing_py = env.get("PYTHONPATH", "")
+    paths = [cwd, parent]
+    if existing_py:
+        env["PYTHONPATH"] = os.pathsep.join(paths) + os.pathsep + existing_py
+    else:
+        env["PYTHONPATH"] = os.pathsep.join(paths)
 
     proc = subprocess.Popen(
         cmd,
