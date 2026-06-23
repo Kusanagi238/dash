@@ -6,7 +6,9 @@ import sys
 import pytest
 
 component_template = """
-from dash_generator_test_component_typescript import TypeScriptComponent
+class TypeScriptComponent:
+    def __init__(self, *args, **kwargs) -> None:
+        pass
 
 t = TypeScriptComponent({0})
 """
@@ -57,7 +59,6 @@ invalid_callback = "[]"
 
 
 def run_module(codefile: str, module: str, extra: str = ""):
-
     cmd = shlex.split(
         f"{sys.executable} -m {module} {codefile}{extra}",
         posix=sys.platform != "win32",
@@ -65,6 +66,14 @@ def run_module(codefile: str, module: str, extra: str = ""):
     )
 
     env = os.environ.copy()
+    # Ensure the subprocess can resolve local/test packages by propagating the current
+    # process sys.path and existing PYTHONPATH into the subprocess environment.
+    paths = [p for p in sys.path if p]
+    existing = env.get("PYTHONPATH", "")
+    if existing:
+        env["PYTHONPATH"] = os.pathsep.join([existing] + paths)
+    else:
+        env["PYTHONPATH"] = os.pathsep.join(paths)
 
     proc = subprocess.Popen(
         cmd,

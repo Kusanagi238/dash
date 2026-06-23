@@ -1,27 +1,25 @@
 import json
 import time
+from multiprocessing import Lock, Value
 
 import flaky
-
-from multiprocessing import Lock, Value
-import pytest
-
 import numpy as np
-
+import pytest
 from dash_test_components import (
     AsyncComponent,
     CollapseComponent,
     DelayedEventComponent,
     FragmentComponent,
 )
+
 from dash import (
     Dash,
     Input,
     Output,
     State,
-    html,
-    dcc,
     dash_table,
+    dcc,
+    html,
     no_update,
 )
 from dash.exceptions import PreventUpdate
@@ -45,7 +43,7 @@ def test_async_cbsc001_simple_callback(dash_duo):
     call_count = Value("i", 0)
 
     @app.callback(Output("output-1", "children"), [Input("input", "value")])
-    async def update_output(value):
+    def update_output(value):
         with lock:
             call_count.value = call_count.value + 1
             return value
@@ -81,7 +79,7 @@ def test_async_cbsc002_callbacks_generating_children(dash_duo):
     )
 
     @app.callback(Output("output", "children"), [Input("input", "value")])
-    async def pad_output(_):
+    def pad_output(_):
         return html.Div(
             [
                 dcc.Input(id="sub-input-1", value="sub input initial value"),
@@ -92,7 +90,7 @@ def test_async_cbsc002_callbacks_generating_children(dash_duo):
     call_count = Value("i", 0)
 
     @app.callback(Output("sub-output-1", "children"), [Input("sub-input-1", "value")])
-    async def update_input(value):
+    def update_input(value):
         call_count.value += 1
         return value
 
@@ -179,7 +177,7 @@ def test_async_cbsc003_callback_with_unloaded_async_component(dash_duo):
     )
 
     @app.callback(Output("output", "children"), [Input("btn", "n_clicks")])
-    async def update_out(n_clicks):
+    def update_out(n_clicks):
         if n_clicks is None:
             raise PreventUpdate
 
@@ -222,7 +220,7 @@ def test_async_cbsc004_callback_using_unloaded_async_component(dash_duo):
         [Input("btn", "n_clicks")],
         [State("table", "data")],
     )
-    async def update_out(n_clicks, data):
+    def update_out(n_clicks, data):
         return json.dumps(data) + " - " + str(n_clicks)
 
     @app.callback(
@@ -230,7 +228,7 @@ def test_async_cbsc004_callback_using_unloaded_async_component(dash_duo):
         [Input("btn", "n_clicks")],
         [State("table", "derived_viewport_data")],
     )
-    async def update_out2(n_clicks, data):
+    def update_out2(n_clicks, data):
         return json.dumps(data) + " - " + str(n_clicks)
 
     dash_duo.start_server(app)
@@ -279,7 +277,7 @@ def test_async_cbsc005_children_types(dash_duo, engine):
         ]
 
         @app.callback(Output("out", "children"), [Input("btn", "n_clicks")])
-        async def set_children(n):
+        def set_children(n):
             if n is None or n > len(outputs):
                 return no_update
             return outputs[n - 1][0]
@@ -303,11 +301,11 @@ def test_async_cbsc006_array_of_objects(dash_duo, engine):
         )
 
         @app.callback(Output("dd", "options"), [Input("btn", "n_clicks")])
-        async def set_options(n):
+        def set_options(n):
             return [{"label": f"opt{i}", "value": i} for i in range(n or 0)]
 
         @app.callback(Output("out", "children"), [Input("dd", "options")])
-        async def set_out(opts):
+        def set_out(opts):
             print(repr(opts))
             return len(opts)
 
@@ -348,17 +346,17 @@ def test_async_cbsc007_parallel_updates(refresh, dash_duo):
     )
 
     @app.callback(Output("t", "data"), [Input("loc", "pathname")])
-    async def set_data(path):
+    def set_data(path):
         return [{"a": (path or repr(path)) + ":a"}]
 
     @app.callback(
         Output("out", "children"), [Input("loc", "pathname"), Input("t", "data")]
     )
-    async def set_out(path, data):
+    def set_out(path, data):
         return json.dumps(data) + " - " + (path or repr(path))
 
     @app.callback(Output("loc", "pathname"), [Input("btn", "n_clicks")])
-    async def set_path(n):
+    def set_path(n):
         if not n:
             raise PreventUpdate
 
@@ -406,14 +404,14 @@ def test_async_cbsc008_wildcard_prop_callbacks(dash_duo):
     percy_enabled = Value("b", False)
 
     @app.callback(Output("output-1", "data-cb"), [Input("input", "value")])
-    async def update_data(value):
+    def update_data(value):
         with lock:
             if not percy_enabled.value:
                 input_call_count.value += 1
             return value
 
     @app.callback(Output("output-1", "children"), [Input("output-1", "data-cb")])
-    async def update_text(data):
+    def update_text(data):
         return data
 
     dash_duo.start_server(app)
@@ -460,7 +458,7 @@ def test_async_cbsc009_callback_using_unloaded_async_component_and_graph(dash_du
         Input("d", "n_clicks"),
         Input("async", "value"),
     )
-    async def content(n, d, v):
+    def content(n, d, v):
         return json.dumps([n, d, v]), (n or 0) > 1
 
     dash_duo.start_server(app)
@@ -494,7 +492,7 @@ def test_async_cbsc010_event_properties(dash_duo):
     call_count = Value("i", 0)
 
     @app.callback(Output("output", "children"), [Input("button", "n_clicks")])
-    async def update_output(n_clicks):
+    def update_output(n_clicks):
         if not n_clicks:
             raise PreventUpdate
         call_count.value += 1
@@ -529,7 +527,7 @@ def test_async_cbsc011_one_call_for_multiple_outputs_initial(dash_duo):
         Output("container", "children"),
         [Input(f"input-{i}", "value") for i in range(10)],
     )
-    async def dynamic_output(*args):
+    def dynamic_output(*args):
         call_count.value += 1
         return json.dumps(args)
 
@@ -559,7 +557,7 @@ def test_async_cbsc012_one_call_for_multiple_outputs_update(dash_duo):
     )
 
     @app.callback(Output("container", "children"), Input("display-content", "n_clicks"))
-    async def display_output(n_clicks):
+    def display_output(n_clicks):
         if not n_clicks:
             return ""
         return html.Div(
@@ -575,7 +573,7 @@ def test_async_cbsc012_one_call_for_multiple_outputs_update(dash_duo):
         Output("dynamic-output", "children"),
         [Input(f"input-{i}", "value") for i in range(10)],
     )
-    async def dynamic_output(*args):
+    def dynamic_output(*args):
         call_count.value += 1
         return json.dumps(args)
 
@@ -613,7 +611,7 @@ def test_async_cbsc013_multi_output_out_of_order(dash_duo):
         Output("output2", "children"),
         Input("input", "n_clicks"),
     )
-    async def update_output(n_clicks):
+    def update_output(n_clicks):
         call_count.value += 1
         if n_clicks == 1:
             with lock:
@@ -659,7 +657,7 @@ def test_async_cbsc014_multiple_properties_update_at_same_time_on_same_component
         Input("button-2", "n_clicks"),
         Input("button-2", "n_clicks_timestamp"),
     )
-    async def update_output(n1, t1, n2, t2):
+    def update_output(n1, t1, n2, t2):
         call_count.value += 1
         timestamp_1.value = t1
         timestamp_2.value = t2
@@ -715,7 +713,7 @@ def test_async_cbsc016_extra_components_callback(dash_duo):
         Output("output-1", "children"),
         [Input("input", "value"), Input("extra-store", "data")],
     )
-    async def update_output(value, data):
+    def update_output(value, data):
         with lock:
             store_data.value = data
             return value
@@ -744,7 +742,7 @@ def test_async_cbsc018_callback_ndarray_output(dash_duo):
         Output("output", "data"),
         Input("clicker", "n_clicks"),
     )
-    async def on_click(_):
+    def on_click(_):
         return np.array([[1, 2, 3], [4, 5, 6]], np.int32)
 
     dash_duo.start_server(app)
@@ -772,7 +770,7 @@ def test_async_cbsc019_callback_running(dash_duo):
         running=[[Output("running", "children"), html.B("on", id="content"), "off"]],
         prevent_initial_call=True,
     )
-    async def on_click(_):
+    def on_click(_):
         with lock:
             pass
         return "done"
@@ -811,7 +809,7 @@ def test_async_cbsc020_callback_running_non_existing_component(dash_duo):
         ],
         prevent_initial_call=True,
     )
-    async def on_click(_):
+    def on_click(_):
         with lock:
             pass
         return "done"
@@ -848,7 +846,7 @@ def test_async_cbsc021_callback_running_non_existing_component(dash_duo):
         ],
         prevent_initial_call=True,
     )
-    async def on_click(_):
+    def on_click(_):
         with lock:
             pass
         return "done"
